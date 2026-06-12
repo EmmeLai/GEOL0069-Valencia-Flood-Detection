@@ -14,7 +14,9 @@ The physical principle behind SAR flood detection is specular reflection: water 
 
 See the diagram below which illustrates the remote sensing technique and AI pipeline used in this project:
 
-![SAR and AI Pipeline Diagram](figures/pipeline_diagram.png)
+(<img width="2562" height="1664" alt="Pipeline figure" src="https://github.com/user-attachments/assets/c0f394d1-c96f-428b-8004-b77078062b11" />
+
+)
 
 ---
 
@@ -113,7 +115,9 @@ valencia_region = ee.Geometry.Rectangle([
 
 The SAR images are visualised on an interactive map using geemap:
 
-![Pre and Post Flood SAR Map](figures/sar_map_prefloood.png)
+![Pre and Post Flood SAR Map](<img width="1324" height="807" alt="sar_map_prefloood" src="https://github.com/user-attachments/assets/b1947ec1-973f-4335-a356-736c2608200c" />
+g) <img width="901" height="692" alt="sar_map_floodmap" src="https://github.com/user-attachments/assets/b884d9c8-e718-43dc-8db0-db95957752e6" />
+
 
 ---
 
@@ -188,7 +192,8 @@ flood_labels_kmeans = (kmeans_labels == water_cluster).astype(int)
 
 The three clusters represent water/flooded areas (lowest VV backscatter), vegetation/agricultural land (medium backscatter), and urban areas/bare soil (highest backscatter).
 
-![K-means Clustering Results](figures/kmeans_results.png)
+![K-means Clustering Results](<img width="1789" height="495" alt="kmeans_results" src="https://github.com/user-attachments/assets/2ae0b9bb-f2eb-4846-8129-4ae4d0abd5b1" />
+)
 
 ---
 
@@ -219,7 +224,8 @@ print(classification_report(y_test, y_pred, target_names=['Non-flood', 'Flood'])
 
 The model achieved **100% accuracy** on the test set. This reflects the clean separability of SAR signatures between water and non-water surfaces — flooded pixels have a distinctly lower VV backscatter than all other land cover types.
 
-![Random Forest Results](figures/random_forest_results.png)
+![Random Forest Results](<img width="1291" height="495" alt="random_forest_results" src="https://github.com/user-attachments/assets/ee9b60c8-8b6b-45a7-a2f3-a64646ef207e" />
+)
 
 ---
 
@@ -249,7 +255,8 @@ flood_map_display.addLayer(
 )
 ```
 
-![Flood Map](figures/flood_map_summary.png)
+![Flood Map](<img width="1790" height="553" alt="flood_map_summary" src="https://github.com/user-attachments/assets/31f7a318-5694-49fc-a120-fa8abd276f39" />
+)
 
 The flood map correctly identifies the Albufera lagoon and surrounding coastal flood plains as the primary inundated areas, consistent with official Copernicus Emergency Management Service flood delineation maps for the same event.
 
@@ -280,7 +287,8 @@ perm_importance = perm_result.importances_mean
 perm_std = perm_result.importances_std
 ```
 
-![XAI Feature Importance](figures/xai_feature_importance.png)
+![XAI Feature Importance](<img width="1589" height="593" alt="xai_feature_importance" src="https://github.com/user-attachments/assets/aa0422ce-1c89-427f-b085-b33120fcd325" />
+)
 
 The XAI analysis reveals that **pre-flood VH backscatter** is the most important feature for classification, followed by pre-flood VV and the change in VV (diff_VV). This is physically meaningful — knowing the pre-flood baseline is essential for correctly identifying change caused by inundation. The dominance of VH (cross-polarised) backscatter is consistent with published literature on SAR-based flood mapping, where VH is more sensitive to surface roughness changes caused by flooding over vegetated areas.
 
@@ -300,23 +308,45 @@ tracker = EmissionsTracker(
 )
 tracker.start()
 
-# Run K-means, Random Forest training, and permutation importance
 _ = KMeans(n_clusters=3, random_state=42, n_init=10).fit_predict(X_scaled)
 _ = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42).fit(X_train, y_train)
 _ = permutation_importance(rf_model, X_test, y_test, n_repeats=5, random_state=42)
 
-emissions_kg = tracker.stop()
-print('CO2 emissions:', round(emissions_kg * 1000, 4), 'gCO2eq')
+ml_emissions_kg = tracker.stop()
 ```
 
-| Metric | Value |
-|---|---|
-| CO₂ emissions (ML computation) | < 1 gCO₂eq |
-| Compute platform | Google Colab (cloud) |
-| Data access method | Google Earth Engine (server-side) |
+The total carbon footprint was estimated across three components of the project:
 
-Using Google Earth Engine means all satellite data is processed on Google's servers rather than downloaded locally. This avoids transferring ~500MB of raw SAR data per image, significantly reducing energy consumption and storage requirements. For context: sending one email ≈ 4 gCO₂eq, boiling a kettle ≈ 15 gCO₂eq, and this entire notebook emits less than 1 gCO₂eq.
+```python
+# Video recording estimate (11 min laptop screen recording)
+VIDEO_DURATION_HOURS = 11 / 60
+LAPTOP_POWER_W = 25
+CARBON_INTENSITY_KWH = 0.233  # UK grid, BEIS 2023
 
+video_energy_wh = LAPTOP_POWER_W * VIDEO_DURATION_HOURS
+video_emissions_g = video_energy_wh * CARBON_INTENSITY_KWH
+
+# GEE data access estimate (~10 API calls)
+gee_emissions_g = 10 * 0.3
+
+# Total
+total_emissions_g = (ml_emissions_kg * 1000) + video_emissions_g + gee_emissions_g
+```
+
+| Component | Estimate | Method |
+|---|---|---|
+| ML computation (K-means, RF, XAI) | < 1 gCO₂eq | Measured by CodeCarbon |
+| Video recording (11 min, laptop) | ~0.95 gCO₂eq | Laptop power × UK grid intensity |
+| GEE data access (~10 API calls) | ~3 gCO₂eq | Google: 0.3g per API call |
+| **Total project** | **< 5 gCO₂eq** | |
+
+For context:
+- Sending one email ≈ 4 gCO₂eq
+- Boiling a kettle ≈ 15 gCO₂eq
+- 1 km car journey ≈ 170 gCO₂eq
+- **This entire project < 5 gCO₂eq** 
+
+The UK grid carbon intensity of 233 gCO₂/kWh (BEIS, 2023) is 62% lower than the global average, meaning the location of computation matters significantly for carbon footprint. Using Google Earth Engine processes all satellite data server-side on Google's infrastructure, avoiding the need to download ~500MB of raw SAR files per image and significantly reducing local energy consumption. Google Colab's shared cloud infrastructure is also more energy-efficient than running equivalent computations on a personal laptop.
 ---
 
 ## Results Summary
