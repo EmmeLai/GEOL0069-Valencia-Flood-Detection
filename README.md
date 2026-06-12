@@ -1,124 +1,313 @@
-# 🌊 Valencia Flood Detection using Sentinel-1 SAR and AI
-### GEOL0069 AI for Earth Observation — Final Assessment
-**UCL Department of Earth Sciences**
+# GEOL0069-Valencia-Flood-Detection
+
+## Project Description
+
+The goal of this project is to use artificial intelligence to automatically detect and map flooded areas from satellite radar imagery, applied to the Valencia DANA flood disaster of October 2024. The *Valencia_Flood_Detection_GEOL0069.ipynb* notebook linked to this GitHub builds on the methods taught in the GEOL0069 Artificial Intelligence for Earth Observation module at University College London (UCL).
+
+On 29 October 2024, a DANA (Depresión Aislada en Niveles Altos) isolated cold-drop weather system triggered catastrophic flash floods across the Valencia region of Spain. In just 8 hours, parts of Valencia received over 400mm of rainfall — more than a full year's average. The floods killed 237 people, inundated more than 53,000 hectares of land, and caused an estimated €10.7 billion in damages, making it one of the deadliest natural disasters in modern Spanish history.
+
+Rapid and accurate flood mapping is critical for emergency response, rescue operations, and damage assessment. Traditional optical satellite imagery is often unusable during flood events because storm clouds block the view. This project addresses that problem by using Synthetic Aperture Radar (SAR) imagery from the Sentinel-1A satellite, which can see through clouds and rain at all times of day and night.
+
+Sentinel-1 is a radar imaging mission launched by the European Space Agency (ESA) in 2014. It is a polar-orbiting satellite that uses a C-band synthetic aperture radar with a central frequency of 5.405 GHz, which allows it to collect images of the Earth's surface regardless of weather or lighting conditions (ESA, n.d.). This makes it uniquely suitable for disaster monitoring, particularly flood detection during storms when optical imagery is unusable.
+
+The physical principle behind SAR flood detection is specular reflection: water surfaces are very smooth compared to land, so radar pulses bounce away from flat water rather than returning to the satellite. This makes flooded areas appear very dark (low backscatter) in SAR imagery, while rough surfaces such as vegetation and urban areas scatter energy back and appear bright (high backscatter). The change in backscatter between pre-flood and post-flood images therefore clearly identifies newly inundated areas.
+
+See the diagram below which illustrates the remote sensing technique and AI pipeline used in this project:
+
+![SAR and AI Pipeline Diagram](figures/pipeline_diagram.png)
 
 ---
 
-##  Problem Description
+## Prerequisites
 
-On **29 October 2024**, a DANA (Depresión Aislada en Niveles Altos) isolated cold-drop weather system triggered catastrophic flash floods across the Valencia region of Spain. In just 8 hours, parts of Valencia received over 400mm of rainfall — more than a full year's average. The floods killed **237 people**, inundated more than **53,000 hectares** of land, and caused an estimated **€10.7 billion** in damages, making it one of the deadliest natural disasters in modern Spanish history.
+The following software and accounts are needed to run the code.
 
-Rapid and accurate flood mapping is critical for emergency response, rescue operations, and damage assessment. Traditional optical satellite imagery is often unusable during flood events because storm clouds block the view. This project addresses that problem by using **Synthetic Aperture Radar (SAR)** imagery from the **Sentinel-1A** satellite, which can see through clouds and rain.
+- A Google account (free)
+- A Google Earth Engine account (free) — register at [earthengine.google.com](https://earthengine.google.com)
+- Google Colab (free, no local installation required)
 
-This project demonstrates how AI and machine learning can be combined with free satellite data to automatically detect and map flooded areas within hours of a disaster.
+Installing required packages in Google Colab:
 
----
-
-## 🛰️ Remote Sensing Technique: Sentinel-1 SAR
-
-**Why SAR?**
-
-SAR (Synthetic Aperture Radar) is an active remote sensing technique that emits its own microwave radar pulses and measures the energy reflected back from the Earth's surface. Unlike optical sensors, SAR does not depend on sunlight and penetrates clouds, making it uniquely valuable for flood monitoring during storms.
-
-**How SAR detects floods:**
-
-Water surfaces are very smooth compared to land. When radar pulses hit flat water, they bounce away from the satellite (specular reflection), returning almost no energy. This makes flooded areas appear **very dark** in SAR imagery. In contrast, rough surfaces like vegetation and urban areas scatter radar energy back to the satellite and appear **bright**.
-
-**Data used:**
-| Image | Date | Satellite | Mode | Polarisations |
-|---|---|---|---|---|
-| Pre-flood | 19 October 2024 | Sentinel-1A | IW (Interferometric Wide) | VV, VH |
-| Post-flood | 31 October 2024 | Sentinel-1A | IW (Interferometric Wide) | VV, VH |
-
-All data was accessed for free via **Google Earth Engine (GEE)** — no downloading required.
-
----
-
-## 🤖 AI Methods
-
-This project implements three AI/ML techniques from the GEOL0069 course:
-
-### 1. K-means Clustering (Unsupervised Learning — Week 3/4)
-K-means is an unsupervised algorithm that groups pixels into clusters based on their SAR backscatter values, without requiring any labelled training data. We used 3 clusters representing water/flood, vegetation, and urban areas. The water cluster was identified as the one with the lowest post-flood VV backscatter value — physically consistent with SAR behaviour over water surfaces.
-
-### 2. Random Forest Classification (Supervised Learning — Week 2)
-Random Forest is an ensemble of decision trees that votes on the class of each pixel. We used the K-means cluster labels as pseudo-labels to train the Random Forest on 6 input features (pre_VV, pre_VH, post_VV, post_VH, diff_VV, diff_VH), then applied the trained model to classify every pixel in the Valencia region.
-
-### 3. Explainable AI — Permutation Feature Importance (Week 9)
-To understand which satellite measurements drive the flood detection, we applied permutation importance: each feature is randomly shuffled and the resulting drop in model accuracy is measured. A larger drop indicates a more important feature. This makes the model's decisions transparent and interpretable.
-
----
-
-## 🗂️ Repository Structure
-
+```python
+!pip install earthengine-api geemap codecarbon --quiet
 ```
-GEOL0069-Valencia-Flood-Detection/
-│
-├── Valencia_Flood_Detection_GEOL0069.ipynb   # Main Colab notebook
-├── README.md                                  # This file
-└── figures/
-    ├── kmeans_results.png                     # K-means clustering figure
-    ├── random_forest_results.png              # Random Forest confusion matrix
-    ├── xai_feature_importance.png             # XAI feature importance figure
-    └── flood_map_summary.png                  # Before/after/flood map summary
+
+Importing all required libraries:
+
+```python
+import ee
+import geemap
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+
+from sklearn.cluster import KMeans
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.inspection import permutation_importance
+from sklearn.preprocessing import StandardScaler
 ```
 
 ---
 
-## 🚀 How to Run
+## Authenticating Google Earth Engine
 
-### Requirements
-- Google account (free)
-- Google Earth Engine account (free) — register at [earthengine.google.com](https://earthengine.google.com)
-- Google Colab (free) — no local installation needed
+Authentication uses the Google account already logged into Colab. A browser popup will appear — click Allow.
 
-### Steps
+```python
+import ee
+from google.colab import auth
 
-1. **Open the notebook in Google Colab:**
-   - Go to [colab.research.google.com](https://colab.research.google.com)
-   - File → Upload notebook → select `Valencia_Flood_Detection_GEOL0069.ipynb`
+# Authenticate using your Colab Google account
+auth.authenticate_user()
 
-2. **Authenticate Google Earth Engine (Section 2):**
-   ```python
-   from google.colab import auth
-   auth.authenticate_user()
-   ee.Initialize(project='your-project-id')
-   ```
-   Replace `your-project-id` with your own GEE project ID from [console.cloud.google.com](https://console.cloud.google.com)
-
-3. **Run all cells:**
-   - Runtime → Run all
-   - Total runtime: approximately 5–10 minutes
-
-### Python Libraries Used
-```
-earthengine-api    # Google Earth Engine access
-geemap             # Interactive map visualisation
-numpy              # Numerical computing
-matplotlib         # Plotting and figures
-scikit-learn       # K-means, Random Forest, XAI
-codecarbon         # Environmental cost tracking
-Pillow             # Image processing
+# Initialise Earth Engine with your project ID
+PROJECT_ID = 'your-project-id'   # Replace with your GEE project ID
+ee.Initialize(project=PROJECT_ID)
 ```
 
 ---
 
-## 📊 Results
+## Fetching Data
 
-### K-means Clustering
-K-means successfully separated pixels into three physically meaningful clusters. The water/flood cluster showed significantly lower post-flood VV backscatter (mean ≈ −20 to −25 dB) compared to vegetation and urban clusters, consistent with SAR physics.
+Sentinel-1 SAR imagery is accessed directly from Google Earth Engine — no downloading required. Two images are fetched: one before the flood and one after.
 
-### Random Forest Classification
-The Random Forest classifier achieved **100% accuracy** on the test set. This high accuracy reflects the clean separability of SAR signatures between water and non-water surfaces. The flood map correctly identified the Albufera lagoon and surrounding coastal flood plains as the primary inundated areas.
+```python
+def get_sentinel1_image(start_date, end_date, region):
+    """
+    Fetch and process a Sentinel-1 SAR image from Google Earth Engine.
+    Returns a mean composite image clipped to the study area.
+    """
+    collection = (
+        ee.ImageCollection('COPERNICUS/S1_GRD')
+        .filterDate(start_date, end_date)
+        .filterBounds(region)
+        .filter(ee.Filter.eq('instrumentMode', 'IW'))
+        .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV'))
+        .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VH'))
+        .filter(ee.Filter.eq('orbitProperties_pass', 'DESCENDING'))
+        .select(['VV', 'VH'])
+        .mean()
+        .clip(region)
+    )
+    return collection
 
-### Explainable AI
-Permutation importance analysis revealed that **pre-flood VH backscatter** is the most important feature for classification, followed by pre-flood VV and the change in VV (diff_VV). This is physically meaningful — knowing the pre-flood baseline is essential for correctly identifying change.
+# Pre-flood image: 1–28 October 2024
+pre_flood_image = get_sentinel1_image('2024-10-01', '2024-10-28', valencia_region)
+
+# Post-flood image: 29 October – 10 November 2024
+post_flood_image = get_sentinel1_image('2024-10-29', '2024-11-10', valencia_region)
+```
+
+The study area is defined as a bounding box over the Valencia flood-affected region:
+
+```python
+valencia_region = ee.Geometry.Rectangle([
+    -0.80,   # West longitude
+    39.20,   # South latitude
+    -0.20,   # East longitude
+    39.60    # North latitude
+])
+```
+
+The SAR images are visualised on an interactive map using geemap:
+
+![Pre and Post Flood SAR Map](figures/sar_map_prefloood.png)
 
 ---
 
-## 🌱 Environmental Cost Assessment
+## Feature Engineering
 
-The computational cost of this project was measured using [CodeCarbon](https://codecarbon.io/).
+Six features are computed per pixel by combining the pre- and post-flood images and computing the change:
+
+```python
+# Combine pre and post flood images into one multi-band image
+combined_image = (
+    pre_flood_image
+    .rename(['pre_VV', 'pre_VH'])
+    .addBands(post_flood_image.rename(['post_VV', 'post_VH']))
+)
+
+# Compute difference bands (change detection)
+# A large decrease in VV after the flood = flooded area
+diff_VV = post_flood_image.select('VV').subtract(pre_flood_image.select('VV')).rename('diff_VV')
+diff_VH = post_flood_image.select('VH').subtract(pre_flood_image.select('VH')).rename('diff_VH')
+
+combined_image = combined_image.addBands(diff_VV).addBands(diff_VH)
+```
+
+Pixel values are sampled from GEE using `aggregate_array()` — fetching all values in a single batch call per band to avoid timeout:
+
+```python
+features = ['pre_VV', 'pre_VH', 'post_VV', 'post_VH', 'diff_VV', 'diff_VH']
+
+sampled = combined_image.select(features).sample(
+    region=valencia_region,
+    scale=300,
+    numPixels=2000,
+    seed=42,
+    geometries=False
+)
+
+data_dict = {}
+for f in features:
+    vals = sampled.aggregate_array(f).getInfo()
+    data_dict[f] = vals
+
+X = np.column_stack([data_dict[f] for f in features])
+```
+
+---
+
+## K-means Clustering (Unsupervised Learning — Weeks 3–4)
+
+K-means is an unsupervised algorithm that groups pixels into clusters based on their SAR backscatter values, without requiring any labelled training data. Features are first standardised to mean=0, std=1 before clustering, as K-means is sensitive to feature scale.
+
+```python
+# Standardise features before clustering
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Apply K-means with 3 clusters
+kmeans = KMeans(
+    n_clusters=3,
+    random_state=42,
+    n_init=10
+)
+kmeans_labels = kmeans.fit_predict(X_scaled)
+
+# Identify the water cluster (lowest post-flood VV backscatter)
+post_VV_idx = features.index('post_VV')
+cluster_means = [X[kmeans_labels == c, post_VV_idx].mean() for c in range(3)]
+water_cluster = np.argmin(cluster_means)
+
+# Create binary flood labels: 1 = flooded, 0 = not flooded
+flood_labels_kmeans = (kmeans_labels == water_cluster).astype(int)
+```
+
+The three clusters represent water/flooded areas (lowest VV backscatter), vegetation/agricultural land (medium backscatter), and urban areas/bare soil (highest backscatter).
+
+![K-means Clustering Results](figures/kmeans_results.png)
+
+---
+
+## Random Forest Classification (Supervised Learning — Week 2)
+
+A Random Forest classifier is trained using the K-means cluster labels as pseudo-labels. The data is split 70% for training and 30% for testing.
+
+```python
+# Split data: 70% training, 30% testing
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42, stratify=y
+)
+
+# Train the Random Forest model
+rf_model = RandomForestClassifier(
+    n_estimators=100,   # 100 decision trees
+    max_depth=10,       # Limit depth to prevent overfitting
+    random_state=42,
+    n_jobs=-1
+)
+rf_model.fit(X_train, y_train)
+
+# Evaluate on test set
+accuracy = rf_model.score(X_test, y_test)
+print('Test Accuracy:', round(accuracy * 100, 2), '%')
+print(classification_report(y_test, y_pred, target_names=['Non-flood', 'Flood']))
+```
+
+The model achieved **100% accuracy** on the test set. This reflects the clean separability of SAR signatures between water and non-water surfaces — flooded pixels have a distinctly lower VV backscatter than all other land cover types.
+
+![Random Forest Results](figures/random_forest_results.png)
+
+---
+
+## Applying the Model to the Full Image
+
+The trained classifier is re-implemented as a GEE Random Forest to classify every pixel in the Valencia region server-side, producing a full flood extent map:
+
+```python
+# Train GEE Random Forest using sampled training data
+gee_classifier = (
+    ee.Classifier.smileRandomForest(numberOfTrees=100)
+    .train(
+        features=training_fc,
+        classProperty='label',
+        inputProperties=features
+    )
+)
+
+# Apply to full image: 0 = non-flood, 1 = flood
+flood_map = combined_image.select(features).classify(gee_classifier)
+
+# Display flood pixels in blue
+flood_map_display.addLayer(
+    flood_map.selfMask(),
+    {'min': 1, 'max': 1, 'palette': ['0000FF']},
+    'Flood Extent (RF Classification)'
+)
+```
+
+![Flood Map](figures/flood_map_summary.png)
+
+The flood map correctly identifies the Albufera lagoon and surrounding coastal flood plains as the primary inundated areas, consistent with official Copernicus Emergency Management Service flood delineation maps for the same event.
+
+---
+
+## Explainable AI — Feature Importance (Week 9)
+
+Two XAI methods are used to understand which satellite measurements drive the flood detection:
+
+**Method 1: Random Forest Gini Importance (built-in)**
+
+```python
+rf_importance = rf_model.feature_importances_
+```
+
+**Method 2: Permutation Importance (Week 9 method)**
+
+Each feature is randomly shuffled and the resulting drop in model accuracy is measured. A larger drop indicates a more important feature.
+
+```python
+perm_result = permutation_importance(
+    rf_model, X_test, y_test,
+    n_repeats=10,
+    random_state=42,
+    n_jobs=-1
+)
+perm_importance = perm_result.importances_mean
+perm_std = perm_result.importances_std
+```
+
+![XAI Feature Importance](figures/xai_feature_importance.png)
+
+The XAI analysis reveals that **pre-flood VH backscatter** is the most important feature for classification, followed by pre-flood VV and the change in VV (diff_VV). This is physically meaningful — knowing the pre-flood baseline is essential for correctly identifying change caused by inundation. The dominance of VH (cross-polarised) backscatter is consistent with published literature on SAR-based flood mapping, where VH is more sensitive to surface roughness changes caused by flooding over vegetated areas.
+
+---
+
+## Environmental Cost Assessment
+
+The computational cost of this project was measured using [CodeCarbon](https://codecarbon.io/):
+
+```python
+from codecarbon import EmissionsTracker
+
+tracker = EmissionsTracker(
+    project_name='Valencia_Flood_Detection',
+    output_file='emissions.csv',
+    log_level='error'
+)
+tracker.start()
+
+# Run K-means, Random Forest training, and permutation importance
+_ = KMeans(n_clusters=3, random_state=42, n_init=10).fit_predict(X_scaled)
+_ = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42).fit(X_train, y_train)
+_ = permutation_importance(rf_model, X_test, y_test, n_repeats=5, random_state=42)
+
+emissions_kg = tracker.stop()
+print('CO2 emissions:', round(emissions_kg * 1000, 4), 'gCO2eq')
+```
 
 | Metric | Value |
 |---|---|
@@ -126,28 +315,39 @@ The computational cost of this project was measured using [CodeCarbon](https://c
 | Compute platform | Google Colab (cloud) |
 | Data access method | Google Earth Engine (server-side) |
 
-**Why this project has a very low carbon footprint:**
-
-Using Google Earth Engine means satellite data is processed on Google's servers rather than downloaded locally. This avoids transferring ~500MB of raw SAR data per image, significantly reducing both energy consumption and storage requirements. Google Colab's shared cloud infrastructure is also more energy-efficient than running equivalent computations on a personal laptop.
-
-For context:
-- Sending one email ≈ 4 gCO₂eq
-- Boiling a kettle ≈ 15 gCO₂eq
-- This entire notebook < 1 gCO₂eq ✅
+Using Google Earth Engine means all satellite data is processed on Google's servers rather than downloaded locally. This avoids transferring ~500MB of raw SAR data per image, significantly reducing energy consumption and storage requirements. For context: sending one email ≈ 4 gCO₂eq, boiling a kettle ≈ 15 gCO₂eq, and this entire notebook emits less than 1 gCO₂eq.
 
 ---
 
-## 📚 References & Data Sources
+## Results Summary
 
-- **Sentinel-1 SAR data**: European Space Agency (ESA) Copernicus Programme, accessed via [Google Earth Engine](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD)
-- **Valencia DANA flood event**: Copernicus Emergency Management Service (CEMS) Rapid Mapping Activation EMSR764
-- **Course materials**: GEOL0069 AI for Earth Observation, UCL — [cpomucl.github.io/GEOL0069-AI4EO](https://cpomucl.github.io/GEOL0069-AI4EO)
-- **K-means & Random Forest**: scikit-learn documentation — [scikit-learn.org](https://scikit-learn.org)
-- **CodeCarbon**: Lottick et al. (2019), Energy Usage Reports for Neural Network Training
+| Method | Result |
+|---|---|
+| K-means (3 clusters) | Successfully identified water, vegetation, and urban clusters |
+| Random Forest accuracy | 100% on test set |
+| Most important feature (XAI) | Pre-flood VH backscatter |
+| Flood area detected | Albufera lagoon + coastal plains correctly identified |
+| CO₂ footprint | < 1 gCO₂eq |
 
 ---
 
-## 👤 Author
+## References
+
+European Space Agency (ESA). (n.d.). Sentinel-1 SAR — GRD. Google Earth Engine Data Catalog. [https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD)
+
+European Space Agency (ESA). (n.d.). The Sentinel Missions. [https://www.esa.int/Applications/Observing_the_Earth/Copernicus/The_Sentinel_missions](https://www.esa.int/Applications/Observing_the_Earth/Copernicus/The_Sentinel_missions)
+
+Copernicus Emergency Management Service (CEMS). (2024). EMSR764 — Flood in Valencia, Spain. [https://emergency.copernicus.eu/mapping/list-of-activations-rapid](https://emergency.copernicus.eu/mapping/list-of-activations-rapid)
+
+Pedregosa, F., et al. (2011). Scikit-learn: Machine Learning in Python. Journal of Machine Learning Research, 12, 2825–2830. [https://scikit-learn.org](https://scikit-learn.org)
+
+Tsamados, M. (2024). GEOL0069 AI for Earth Observation. UCL Department of Earth Sciences. [https://cpomucl.github.io/GEOL0069-AI4EO](https://cpomucl.github.io/GEOL0069-AI4EO)
+
+Courty, L., Nguyen, Q. H., & Van de Walle, A. (2023). CodeCarbon: Estimate and Track Carbon Emissions from Machine Learning Computing. [https://codecarbon.io](https://codecarbon.io)
+
+---
+
+## Author
 
 **EmmeLai**
 UCL Department of Earth Sciences
