@@ -55,7 +55,7 @@ from sklearn.preprocessing import StandardScaler
 
 ## Authenticating Google Earth Engine
 
-Authentication uses the Google account already logged into Colab. A browser popup will appear — click Allow.
+Authentication uses the Google account already logged into Colab. A browser popup will appear & click Allow.
 
 ```python
 import ee
