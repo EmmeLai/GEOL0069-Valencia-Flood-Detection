@@ -192,8 +192,8 @@ flood_labels_kmeans = (kmeans_labels == water_cluster).astype(int)
 
 The three clusters represent water/flooded areas (lowest VV backscatter), vegetation/agricultural land (medium backscatter), and urban areas/bare soil (highest backscatter).
 
-![K-means Clustering Results](<img width="1789" height="495" alt="kmeans_results" src="https://github.com/user-attachments/assets/2ae0b9bb-f2eb-4846-8129-4ae4d0abd5b1" />
-)
+[K-means Clustering Results]<img width="1789" height="495" alt="kmeans_results" src="https://github.com/user-attachments/assets/296de3bc-f2d2-43c9-94ea-c5c50ea4f806" />
+
 
 ---
 
@@ -224,8 +224,8 @@ print(classification_report(y_test, y_pred, target_names=['Non-flood', 'Flood'])
 
 The model achieved **100% accuracy** on the test set. This reflects the clean separability of SAR signatures between water and non-water surfaces flooded pixels have a distinctly lower VV backscatter than all other land cover types.
 
-![Random Forest Results](<img width="1291" height="495" alt="random_forest_results" src="https://github.com/user-attachments/assets/ee9b60c8-8b6b-45a7-a2f3-a64646ef207e" />
-)
+[Random Forest Results]<img width="1789" height="495" alt="kmeans_results" src="https://github.com/user-attachments/assets/07e1cc4b-d253-43d3-900e-297a609968ab" />
+
 
 ---
 
@@ -255,8 +255,8 @@ flood_map_display.addLayer(
 )
 ```
 
-![Flood Map](<img width="1790" height="553" alt="flood_map_summary" src="https://github.com/user-attachments/assets/31f7a318-5694-49fc-a120-fa8abd276f39" />
-)
+[Flood Map]<img width="1790" height="553" alt="flood_map_summary" src="https://github.com/user-attachments/assets/39411028-7c11-413f-a0bf-ce3ae7bf7ffe" />
+
 
 The flood map correctly identifies the Albufera lagoon and surrounding coastal flood plains as the primary inundated areas, consistent with official Copernicus Emergency Management Service flood delineation maps for the same event.
 
@@ -287,8 +287,8 @@ perm_importance = perm_result.importances_mean
 perm_std = perm_result.importances_std
 ```
 
-![XAI Feature Importance](<img width="1589" height="593" alt="xai_feature_importance" src="https://github.com/user-attachments/assets/aa0422ce-1c89-427f-b085-b33120fcd325" />
-)
+[XAI Feature Importance]<img width="1589" height="593" alt="xai_feature_importance" src="https://github.com/user-attachments/assets/e8358582-0029-4115-9718-da2a288fe6d9" />
+
 
 The XAI analysis reveals that **pre flood VH backscatter** is the most important feature for classification, followed by pre flood VV and the change in VV (diff_VV). This is physically meaningful, knowing the pre flood baseline is essential for correctly identifying change caused by inundation. The dominance of VH (cross polarised) backscatter is consistent with published literature on SAR-based flood mapping, where VH is more sensitive to surface roughness changes caused by flooding over vegetated areas.
 
