@@ -360,7 +360,39 @@ The UK grid carbon intensity of 233 gCO₂/kWh (BEIS, 2023) is 62% lower than th
 | CO₂ footprint | < 1 gCO₂eq |
 
 ---
+## Discussion
 
+The results of this project demonstrate that Sentinel-1 SAR imagery combined with unsupervised and supervised machine learning can effectively detect flood extent without requiring any manually labelled training data. The K-means clustering successfully identified three physically meaningful land cover classes: water, vegetation, and urban areas. Based purely on SAR backscatter values, consistent with the known behaviour of radar over different surface types.
+
+The Random Forest classifier achieved 100% accuracy on the test set. While this is a strong result, it is important to note that the test labels were derived from K-means pseudo labels rather than independently verified ground truth data. This means the accuracy reflects how well Random Forest learned the K-means classification, not necessarily how well it maps to real-world flood extent. Ideally, validation would use official flood delineation maps such as those produced by the Copernicus Emergency Management Service for this event.
+
+The XAI analysis revealed that pre flood VH backscatter is the most important feature. This is physically meaningful, VH cross polarised backscatter is particularly sensitive to surface roughness changes over vegetated areas, making it a strong indicator of inundation. The importance of the pre flood baseline confirms that change detection is more powerful than using post flood data alone.
+
+The flood map correctly identifies the Albufera lagoon and surrounding coastal plains as the primary inundated areas, consistent with published reports of the Valencia DANA event.
+
+---
+
+## Limitations
+
+**1. Pseudo label training data**
+The Random Forest was trained on K-means pseudo labels rather than human-annotated ground truth. This means any systematic errors in the K-means clustering will propagate into the Random Forest classification. Future work could incorporate manually labelled samples or official flood masks as training data.
+
+**2. SAR speckle noise**
+Sentinel-1 SAR imagery contains speckle noise, a granular texture caused by random interference of radar waves. This project did not apply a speckle filter, which could improve classification accuracy, particularly in distinguishing flooded vegetation from open water.
+
+**3. Spatial resolution and sampling scale**
+Pixel sampling was performed at 300 metre resolution rather than Sentinel-1's native 20 metre resolution. This was necessary to avoid Google Colab timeout errors, but means some small scale flooding features may be missed. A production system would process at full resolution.
+
+**4. Confusion between calm water and smooth urban surfaces**
+SAR cannot always distinguish between calm open water and very smooth urban surfaces such as roads and car parks, both produce low backscatter through specular reflection. This can lead to false positive flood detections in urban areas.
+
+**5. Wind-roughened floodwater**
+Strong winds during the storm can roughen the water surface, increasing its backscatter and making it appear more similar to land. This can cause flooded areas to be missed in SAR imagery acquired during or immediately after the storm.
+
+**6. Single orbit pass**
+This project used only the descending orbit pass of Sentinel-1. Using both ascending and descending passes would provide more complete spatial coverage and reduce gaps in the flood map.
+
+---
 ## References
 
 European Space Agency (ESA). (n.d.). Sentinel-1 SAR — GRD. Google Earth Engine Data Catalog. [https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD)
