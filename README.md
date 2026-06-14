@@ -4,13 +4,13 @@
 
 The goal of this project is to use artificial intelligence to automatically detect and map flooded areas from satellite radar imagery, applied to the Valencia DANA flood disaster of October 2024. The *Valencia_Flood_Detection_GEOL0069.ipynb* notebook linked to this GitHub builds on the methods taught in the GEOL0069 Artificial Intelligence for Earth Observation module at University College London (UCL).
 
-On 29 October 2024, a DANA (Depresión Aislada en Niveles Altos) isolated cold-drop weather system triggered catastrophic flash floods across the Valencia region of Spain. In just 8 hours, parts of Valencia received over 400mm of rainfall — more than a full year's average. The floods killed 237 people, inundated more than 53,000 hectares of land, and caused an estimated €10.7 billion in damages, making it one of the deadliest natural disasters in modern Spanish history.
+On 29 October 2024, a DANA (Depresión Aislada en Niveles Altos) isolated cold drop weather system triggered catastrophic flash floods across the Valencia region of Spain. In just 8 hours, parts of Valencia received over 400mm of rainfall more than a full year's average. The floods killed 237 people, inundated more than 53,000 hectares of land, and caused an estimated €10.7 billion in damages, making it one of the deadliest natural disasters in modern Spanish history.
 
 Rapid and accurate flood mapping is critical for emergency response, rescue operations, and damage assessment. Traditional optical satellite imagery is often unusable during flood events because storm clouds block the view. This project addresses that problem by using Synthetic Aperture Radar (SAR) imagery from the Sentinel-1A satellite, which can see through clouds and rain at all times of day and night.
 
 Sentinel-1 is a radar imaging mission launched by the European Space Agency (ESA) in 2014. It is a polar-orbiting satellite that uses a C-band synthetic aperture radar with a central frequency of 5.405 GHz, which allows it to collect images of the Earth's surface regardless of weather or lighting conditions (ESA, n.d.). This makes it uniquely suitable for disaster monitoring, particularly flood detection during storms when optical imagery is unusable.
 
-The physical principle behind SAR flood detection is specular reflection: water surfaces are very smooth compared to land, so radar pulses bounce away from flat water rather than returning to the satellite. This makes flooded areas appear very dark (low backscatter) in SAR imagery, while rough surfaces such as vegetation and urban areas scatter energy back and appear bright (high backscatter). The change in backscatter between pre-flood and post-flood images therefore clearly identifies newly inundated areas.
+The physical principle behind SAR flood detection is specular reflection: water surfaces are very smooth compared to land, so radar pulses bounce away from flat water rather than returning to the satellite. This makes flooded areas appear very dark (low backscatter) in SAR imagery, while rough surfaces such as vegetation and urban areas scatter energy back and appear bright (high backscatter). The change in backscatter between pre flood and post flood images therefore clearly identifies newly inundated areas.
 
 See the diagram below which illustrates the remote sensing technique and AI pipeline used in this project:
 
@@ -25,7 +25,7 @@ See the diagram below which illustrates the remote sensing technique and AI pipe
 The following software and accounts are needed to run the code.
 
 - A Google account (free)
-- A Google Earth Engine account (free) — register at [earthengine.google.com](https://earthengine.google.com)
+- A Google Earth Engine account (free) register at [earthengine.google.com](https://earthengine.google.com)
 - Google Colab (free, no local installation required)
 
 Installing required packages in Google Colab:
@@ -123,7 +123,7 @@ g) <img width="901" height="692" alt="sar_map_floodmap" src="https://github.com/
 
 ## Feature Engineering
 
-Six features are computed per pixel by combining the pre- and post-flood images and computing the change:
+Six features are computed per pixel by combining the pre and post flood images and computing the change:
 
 ```python
 # Combine pre and post flood images into one multi-band image
@@ -141,7 +141,7 @@ diff_VH = post_flood_image.select('VH').subtract(pre_flood_image.select('VH')).r
 combined_image = combined_image.addBands(diff_VV).addBands(diff_VH)
 ```
 
-Pixel values are sampled from GEE using `aggregate_array()` — fetching all values in a single batch call per band to avoid timeout:
+Pixel values are sampled from GEE using `aggregate_array()` fetching all values in a single batch call per band to avoid timeout:
 
 ```python
 features = ['pre_VV', 'pre_VH', 'post_VV', 'post_VH', 'diff_VV', 'diff_VH']
@@ -199,7 +199,7 @@ The three clusters represent water/flooded areas (lowest VV backscatter), vegeta
 
 ## Random Forest Classification (Supervised Learning — Week 2)
 
-A Random Forest classifier is trained using the K-means cluster labels as pseudo-labels. The data is split 70% for training and 30% for testing.
+A Random Forest classifier is trained using the K-means cluster labels as pseudo labels. The data is split 70% for training and 30% for testing.
 
 ```python
 # Split data: 70% training, 30% testing
@@ -222,7 +222,7 @@ print('Test Accuracy:', round(accuracy * 100, 2), '%')
 print(classification_report(y_test, y_pred, target_names=['Non-flood', 'Flood']))
 ```
 
-The model achieved **100% accuracy** on the test set. This reflects the clean separability of SAR signatures between water and non-water surfaces — flooded pixels have a distinctly lower VV backscatter than all other land cover types.
+The model achieved **100% accuracy** on the test set. This reflects the clean separability of SAR signatures between water and non-water surfaces flooded pixels have a distinctly lower VV backscatter than all other land cover types.
 
 ![Random Forest Results](<img width="1291" height="495" alt="random_forest_results" src="https://github.com/user-attachments/assets/ee9b60c8-8b6b-45a7-a2f3-a64646ef207e" />
 )
@@ -231,7 +231,7 @@ The model achieved **100% accuracy** on the test set. This reflects the clean se
 
 ## Applying the Model to the Full Image
 
-The trained classifier is re-implemented as a GEE Random Forest to classify every pixel in the Valencia region server-side, producing a full flood extent map:
+The trained classifier is re-implemented as a GEE Random Forest to classify every pixel in the Valencia region server side, producing a full flood extent map:
 
 ```python
 # Train GEE Random Forest using sampled training data
@@ -266,7 +266,7 @@ The flood map correctly identifies the Albufera lagoon and surrounding coastal f
 
 Two XAI methods are used to understand which satellite measurements drive the flood detection:
 
-**Method 1: Random Forest Gini Importance (built-in)**
+**Method 1: Random Forest Gini Importance (built in)**
 
 ```python
 rf_importance = rf_model.feature_importances_
@@ -290,7 +290,7 @@ perm_std = perm_result.importances_std
 ![XAI Feature Importance](<img width="1589" height="593" alt="xai_feature_importance" src="https://github.com/user-attachments/assets/aa0422ce-1c89-427f-b085-b33120fcd325" />
 )
 
-The XAI analysis reveals that **pre-flood VH backscatter** is the most important feature for classification, followed by pre-flood VV and the change in VV (diff_VV). This is physically meaningful — knowing the pre-flood baseline is essential for correctly identifying change caused by inundation. The dominance of VH (cross-polarised) backscatter is consistent with published literature on SAR-based flood mapping, where VH is more sensitive to surface roughness changes caused by flooding over vegetated areas.
+The XAI analysis reveals that **pre flood VH backscatter** is the most important feature for classification, followed by pre flood VV and the change in VV (diff_VV). This is physically meaningful, knowing the pre flood baseline is essential for correctly identifying change caused by inundation. The dominance of VH (cross-polarised) backscatter is consistent with published literature on SAR-based flood mapping, where VH is more sensitive to surface roughness changes caused by flooding over vegetated areas.
 
 ---
 
@@ -346,7 +346,7 @@ For context:
 - 1 km car journey ≈ 170 gCO₂eq
 - **This entire project < 5 gCO₂eq** 
 
-The UK grid carbon intensity of 233 gCO₂/kWh (BEIS, 2023) is 62% lower than the global average, meaning the location of computation matters significantly for carbon footprint. Using Google Earth Engine processes all satellite data server-side on Google's infrastructure, avoiding the need to download ~500MB of raw SAR files per image and significantly reducing local energy consumption. Google Colab's shared cloud infrastructure is also more energy-efficient than running equivalent computations on a personal laptop.
+The UK grid carbon intensity of 233 gCO₂/kWh (BEIS, 2023) is 62% lower than the global average, meaning the location of computation matters significantly for carbon footprint. Using Google Earth Engine processes all satellite data server side on Google's infrastructure, avoiding the need to download ~500MB of raw SAR files per image and significantly reducing local energy consumption. Google Colab's shared cloud infrastructure is also more energy-efficient than running equivalent computations on a personal laptop.
 ---
 
 ## Results Summary
