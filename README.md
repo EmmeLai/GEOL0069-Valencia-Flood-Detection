@@ -73,7 +73,7 @@ ee.Initialize(project=PROJECT_ID)
 
 ## Fetching Data
 
-Sentinel-1 SAR imagery is accessed directly from Google Earth Engine — no downloading required. Two images are fetched: one before the flood and one after.
+Sentinel-1 SAR imagery is accessed directly from Google Earth Engine, no downloading required. Two images are fetched: one before the flood and one after.
 
 ```python
 def get_sentinel1_image(start_date, end_date, region):
@@ -290,7 +290,7 @@ perm_std = perm_result.importances_std
 ![XAI Feature Importance](<img width="1589" height="593" alt="xai_feature_importance" src="https://github.com/user-attachments/assets/aa0422ce-1c89-427f-b085-b33120fcd325" />
 )
 
-The XAI analysis reveals that **pre flood VH backscatter** is the most important feature for classification, followed by pre flood VV and the change in VV (diff_VV). This is physically meaningful, knowing the pre flood baseline is essential for correctly identifying change caused by inundation. The dominance of VH (cross-polarised) backscatter is consistent with published literature on SAR-based flood mapping, where VH is more sensitive to surface roughness changes caused by flooding over vegetated areas.
+The XAI analysis reveals that **pre flood VH backscatter** is the most important feature for classification, followed by pre flood VV and the change in VV (diff_VV). This is physically meaningful, knowing the pre flood baseline is essential for correctly identifying change caused by inundation. The dominance of VH (cross polarised) backscatter is consistent with published literature on SAR-based flood mapping, where VH is more sensitive to surface roughness changes caused by flooding over vegetated areas.
 
 ---
 
