@@ -115,7 +115,7 @@ valencia_region = ee.Geometry.Rectangle([
 
 The SAR images are visualised on an interactive map using geemap:
 
-![Pre and Post Flood SAR Map](<img width="1324" height="807" alt="sar_map_prefloood" src="https://github.com/user-attachments/assets/b1947ec1-973f-4335-a356-736c2608200c" />
+[Pre and Post Flood SAR Map](<img width="1324" height="807" alt="sar_map_prefloood" src="https://github.com/user-attachments/assets/b1947ec1-973f-4335-a356-736c2608200c" />
 g) <img width="901" height="692" alt="sar_map_floodmap" src="https://github.com/user-attachments/assets/b884d9c8-e718-43dc-8db0-db95957752e6" />
 
 
@@ -224,7 +224,8 @@ print(classification_report(y_test, y_pred, target_names=['Non-flood', 'Flood'])
 
 The model achieved **100% accuracy** on the test set. This reflects the clean separability of SAR signatures between water and non-water surfaces flooded pixels have a distinctly lower VV backscatter than all other land cover types.
 
-[Random Forest Results]<img width="1789" height="495" alt="kmeans_results" src="https://github.com/user-attachments/assets/07e1cc4b-d253-43d3-900e-297a609968ab" />
+[Random Forest Results]<img width="1291" height="495" alt="random_forest_results" src="https://github.com/user-attachments/assets/c83d512c-cc19-4c48-9c81-71aee981dc3b" />
+
 
 
 ---
